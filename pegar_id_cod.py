@@ -17,19 +17,6 @@ def pegar_id_cod(cod):
         `cod`: string com código alpha numérico\n
         `return`: dic do ID do vídeo com código especificado e título do vídeo.
     '''
-    # REFERÊNCIA DO TÍTULO DO VÍDEO E COD YOUTUBE:
-    #title = dic_json['contents']['twoColumnBrowseResultsRenderer']['tabs'][6]['expandableTabRenderer']['content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents'][0]['videoRenderer']['title']['simpleText']
-    #id_yt = dic_json['contents']['twoColumnBrowseResultsRenderer']['tabs'][6]['expandableTabRenderer']['content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents'][0]['videoRenderer']['videoId']
-
-    # FUNÇÃO ANTIGA USANDO HTML, NÃO TAG SCRIPT:
-    # def link_com_codigo_BPlay(cod): # Usa a url de busca do BernoulliPlay para pegar o link de visualização do código 'cod'
-    # source = requests.get(URL_BUSCA_BPLAY + cod).text
-    # soup = BeautifulSoup(source, "html.parser")
-    # for link in soup.select('a[href^="/watch"]'):
-    #     if cod.upper() in link.text.upper():
-    #         parte_video = link.get('href')
-    #         print(parte_video)
-    #         return ('https://www.youtube.com' + parte_video)
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36'}
@@ -67,21 +54,20 @@ def pegar_id_cod(cod):
                                                     return {'id': [id_yt], 'nome': [title]}
 
 
-def agrupar_ids_cod(identificador=''):
-    codigos_xlsx = f'codigos{identificador}.xlsx'
-    dados_parciais_xlsx = f'cods_ids_parciais{identificador}.xlsx'
+def agrupar_ids_cod(nomeBase='Codigos'):
+    codigos_xlsx = f'{nomeBase}.xlsx'
+    dados_parciais_xlsx = f'{nomeBase}_Parcial.xlsx'
     try:
-        dados_parciais = pd.read_excel(dados_parciais_xlsx)
+        dados_parciais = pd.read_excel(dados_parciais_xlsx, dtype='str')
         cods_feitos = dados_parciais.iloc[:, 0].to_list()
     except:
         print('\nComeçando do zero, criando arquivos...\n')
         dados_parciais = pd.DataFrame()
         cods_feitos = []
     try:
-        df_todos_cods = pd.read_excel(codigos_xlsx)
+        df_todos_cods = pd.read_excel(codigos_xlsx, dtype='str')
         list_todos_cods = df_todos_cods.iloc[:, 0].to_list()
-        list_todos_cods = [x.replace('0', 'Ø').upper()
-                           for x in list_todos_cods]
+        list_todos_cods = [str(x).upper() for x in list_todos_cods]
     except Exception:
         print('Erro: Sem arquivo com pra pegar os codigos!')
         traceback.print_exc()
@@ -105,30 +91,21 @@ def agrupar_ids_cod(identificador=''):
             dic_cod = pegar_id_cod(cod)
             if dic_cod:
                 dic_cod = {**dic_cod, **{'cod': [cod]}, }
-                dados_parciais = pd.concat(
-                    [dados_parciais, pd.DataFrame(dic_cod)], ignore_index=True, sort=None)
             else:
-                cod = cod.replace('Ø', '0')
-                dic_cod = pegar_id_cod(cod)
-                if dic_cod:
-                    dic_cod = {**{'cod': [cod]}, **dic_cod}
-                else:
-                    dic_cod = {'cod': [cod]}
-                    print(f'\nId do {cod} não encontrado!')
-                dados_parciais = pd.concat(
-                    [dados_parciais, pd.DataFrame(dic_cod)], ignore_index=True, sort=None)
+                dic_cod = {'cod': [cod]}
+                print(f'\nId do {cod} não encontrado!')
+            dados_parciais = pd.concat(
+                [dados_parciais, pd.DataFrame(dic_cod)], ignore_index=True, sort=None)
             dados_parciais.to_excel(
                 dados_parciais_xlsx, encoding='utf16', index=False)
     dados_parciais.drop_duplicates(
         subset=dados_parciais.columns[0], inplace=True)
     dados_parciais.set_index(dados_parciais.columns[0], inplace=True)
     df_todos_cods['id'] = df_todos_cods[df_todos_cods.columns[0]].map(
-        lambda x: dados_parciais.loc[x, 'id'] if x in dados_parciais.index else '')
+        lambda x: dados_parciais.loc[x, 'id'] if str(x) in dados_parciais.index else '')
     df_todos_cods['nome'] = df_todos_cods[df_todos_cods.columns[0]].map(
-        lambda x: dados_parciais.loc[x, 'nome'] if x in dados_parciais.index else '')
-    df_todos_cods.to_excel('dados_completos.xlsx',
-                           index=False, encoding='utf8')
-    df_todos_cods.to_excel(f'codigos completos {identificador}.xlsx',
+        lambda x: dados_parciais.loc[x, 'nome'] if str(x) in dados_parciais.index else '')
+    df_todos_cods.to_excel(f'{nomeBase}_Completo.xlsx',
                            encoding='utf16', index=False)
 
 
@@ -147,6 +124,7 @@ def baixar_videos(n, nome_excel='_Dados_vídeos_gravados.xlsx', header=1):
             'resolution').desc().first().download(filename=name)
 
 
-agrupar_ids_cod(identificador='Simulado')
+agrupar_ids_cod(nomeBase='codigosSimulado')
 
 # %%
+pegar_id_cod('1236')
